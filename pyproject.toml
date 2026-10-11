@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "akinvox-kokoro-multispeaker"
-version = "1.0.0"
+version = "1.0.2"
 description = "AkinVox Kokoro native language adapters over one shared stock base"
 readme = "README.md"
 requires-python = ">=3.10,<3.13"

@@ -1,11 +1,94 @@
 """Downloaded language selection must agree with the pinned release catalog."""
 
+import copy
 import json
 
 import huggingface_hub
 import pytest
+import torch
 
 from kokoro_multispeaker import bundles
+
+
+def fixed_bundle(tmp_path, damage=None):
+    names = ["AV_ariala", "AV_brody"]
+    conditioning = {
+        "format": "materialized-fixed-speakers-v1",
+        "all510_rows_identical_per_voice": True,
+        "decoder_and_predictor_halves_finalized": True,
+        "voicepacks": {
+            name: {
+                "file": "voices/" + name + ".pt",
+                "sha256": "d" * 64,
+                "shape": [510, 1, 256],
+            }
+            for name in names
+        },
+    }
+    config = {
+        "format": "akinvox-stock-language-bundle/v1",
+        "language": "en",
+        "base_sha256": bundles.BASE_SHA256,
+        "speaker_names": names,
+        "update": 185000,
+        "source_checkpoint_sha256": "c" * 64,
+        "voice_conditioning": copy.deepcopy(conditioning),
+    }
+    bank = torch.stack([torch.ones(510, 256), torch.full((510, 256), 2.0)])
+    release = {
+        "contract": "akinvox-stock-multispeaker-adapter/v1",
+        "task": "en_multispeaker",
+        "base_sha256": bundles.BASE_SHA256,
+        "update": 185000,
+        "source_checkpoint_sha256": "c" * 64,
+        "speaker_names": names,
+        "voicebank": bank,
+        "targets": [{} for _ in range(201)],
+        "state": {str(i): torch.ones(1) for i in range(402)},
+        "voice_conditioning": conditioning,
+    }
+    if damage == "checkpoint":
+        config["source_checkpoint_sha256"] = "e" * 64
+    elif damage == "update":
+        config["update"] += 1
+    elif damage == "profile":
+        config["voice_conditioning"]["voicepacks"][names[0]]["sha256"] = "e" * 64
+    elif damage == "half":
+        release["voice_conditioning"]["decoder_and_predictor_halves_finalized"] = False
+        config["voice_conditioning"] = copy.deepcopy(release["voice_conditioning"])
+    elif damage == "name":
+        release["voice_conditioning"]["voicepacks"]["AV_wrong"] = release[
+            "voice_conditioning"
+        ]["voicepacks"].pop(names[0])
+        config["voice_conditioning"] = copy.deepcopy(release["voice_conditioning"])
+    elif damage == "raw_row":
+        release["voicebank"][0, 8] += 1
+    torch.save(release, tmp_path / "adapter.pt")
+    (tmp_path / "config.json").write_text(json.dumps(config))
+    (tmp_path / "SHA256SUMS").write_text(
+        "".join(
+            bundles.sha(tmp_path / name) + "  " + name + "\n"
+            for name in ["adapter.pt", "config.json"]
+        )
+    )
+    return tmp_path
+
+
+def test_fixed_bundle_retains_bound_native_profiles(tmp_path):
+    release, config = bundles._checked_bundle(fixed_bundle(tmp_path), "en")
+    assert release["source_checkpoint_sha256"] == config["source_checkpoint_sha256"]
+    assert torch.equal(
+        release["voicebank"],
+        release["voicebank"][:, 0:1].expand_as(release["voicebank"]),
+    )
+
+
+@pytest.mark.parametrize(
+    "damage", ["checkpoint", "update", "profile", "half", "name", "raw_row"]
+)
+def test_recomputed_checksums_do_not_hide_wrong_profile_or_checkpoint(tmp_path, damage):
+    with pytest.raises(ValueError, match="profiles|voicebank"):
+        bundles._checked_bundle(fixed_bundle(tmp_path, damage), "en")
 
 
 @pytest.fixture

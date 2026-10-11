@@ -19,6 +19,8 @@ The public entrypoint is `KokoroMultispeaker`. One instance owns the original st
 
 The native layers match the model checkpoints. Preserve their tensor operations, state keys and random-noise order when changing the surrounding API.
 
+Each learned speaker must use one qualified, checkpoint-bound profile for both native style halves. Repeat it in all 510 voicepack rows; input length, chunking and context must not select another speaker profile. The SDK checks that adapter and configuration agree on the checkpoint, update and finalized named profiles, in addition to checksums and constant rows. Never export a raw training bank or choose a universal row for routine previews. Requalify profiles when the checkpoint changes, and keep original-stock and reference-cloning contracts separate.
+
 ## Local development
 
 Use Python 3.10 and the CPU PyTorch 2.6.0 wheel:

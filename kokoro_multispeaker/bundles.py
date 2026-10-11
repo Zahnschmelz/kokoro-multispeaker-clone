@@ -70,6 +70,25 @@ def _checked_bundle(path, language):
         or len(release.get("state", {})) != 402
     ):
         raise ValueError("Invalid fixed voicebank or adapter inventory")
+    conditioning = release.get("voice_conditioning")
+    if (
+        isinstance(release.get("update"), bool)
+        or not isinstance(release.get("update"), int)
+        or release["update"] <= 0
+        or release["update"] != config.get("update")
+        or not re.fullmatch(
+            "[0-9a-f]{64}", str(release.get("source_checkpoint_sha256", ""))
+        )
+        or release["source_checkpoint_sha256"] != config.get("source_checkpoint_sha256")
+        or not isinstance(conditioning, dict)
+        or conditioning != config.get("voice_conditioning")
+        or conditioning.get("format") != "materialized-fixed-speakers-v1"
+        or conditioning.get("all510_rows_identical_per_voice") is not True
+        or conditioning.get("decoder_and_predictor_halves_finalized") is not True
+        or not isinstance(conditioning.get("voicepacks"), dict)
+        or set(conditioning["voicepacks"]) != set(names)
+    ):
+        raise ValueError("Speaker profiles and checkpoint metadata differ")
     if set(release) != {
         "contract",
         "task",

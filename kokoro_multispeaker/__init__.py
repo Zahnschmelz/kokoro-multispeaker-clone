@@ -5,7 +5,7 @@ from importlib.metadata import PackageNotFoundError, version
 try:
     __version__ = version("akinvox-kokoro-multispeaker")
 except PackageNotFoundError:
-    __version__ = "1.0.0"
+    __version__ = "1.0.2"
 
 
 def __getattr__(name):
