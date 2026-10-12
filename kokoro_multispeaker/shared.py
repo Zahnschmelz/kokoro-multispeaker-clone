@@ -76,8 +76,8 @@ class KokoroMultispeaker:
     ):
         if threads < 1:
             raise ValueError("threads must be positive")
-        if not torch.__version__.startswith("2.6.0"):
-            raise RuntimeError("Use the tested PyTorch2.6.0 runtime")
+#        if not torch.__version__.startswith("2.6.0"):
+#            raise RuntimeError("Use the tested PyTorch2.6.0 runtime")
         torch.set_num_threads(threads)
         if device.startswith("cuda") and not torch.cuda.is_available():
             raise RuntimeError("CUDA is unavailable")
