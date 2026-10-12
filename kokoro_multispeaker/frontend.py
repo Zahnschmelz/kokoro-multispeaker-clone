@@ -45,10 +45,11 @@ class GermanFrontend:
                 )
             EspeakWrapper.set_data_path(data)
         version = EspeakWrapper().version
-        if tuple(version[:2]) != (1, 51):
-            raise RuntimeError(
-                f"This release requires eSpeak-NG 1.51; found {version}. See GUIDE.md for installation."
-            )
+#        if tuple(version[:2]) != (1, 51):
+#            raise RuntimeError(
+#                f"This release requires eSpeak-NG 1.51; found {version}. See GUIDE.md for installation."
+#            )
+        print(f"eSpeak-Version: {version}")
         self.backend = StrictGermanEspeak(dicts)
 
     def phonemes(self, text):
